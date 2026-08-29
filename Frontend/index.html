@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shelfmate — Find your next read</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg-deep: #1a0505;
+    --red-1: #ff2b3d;
+    --red-2: #ff5a4e;
+    --red-glow: #ff0844;
+    --glass: rgba(255,255,255,0.06);
+    --glass-border: rgba(255,255,255,0.14);
+    --text: #fdf2f0;
+    --text-dim: rgba(253,242,240,0.6);
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    color: var(--text);
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse 900px 600px at 15% -5%, rgba(255,43,61,0.35), transparent),
+      radial-gradient(ellipse 800px 700px at 90% 20%, rgba(255,8,68,0.25), transparent),
+      radial-gradient(ellipse 700px 600px at 50% 110%, rgba(255,90,78,0.2), transparent),
+      var(--bg-deep);
+    background-attachment: fixed;
+  }
+
+  header {
+    padding: 4rem 1.5rem 2rem;
+    text-align: center;
+  }
+  header h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 5.5vw, 3.6rem);
+    font-weight: 700;
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.01em;
+    background: linear-gradient(135deg, #fff, var(--red-2) 130%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  header p {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .glass {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border-radius: 18px;
+  }
+
+  .search-wrap {
+    max-width: 560px;
+    margin: 1.5rem auto 0;
+    padding: 0 1.5rem;
+    position: relative;
+  }
+  .search-box {
+    display: flex;
+    align-items: center;
+    padding: 0.3rem;
+  }
+  #query {
+    width: 100%;
+    padding: 0.9rem 1.1rem;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    outline: none;
+  }
+  #query::placeholder { color: rgba(253,242,240,0.35); }
+
+  #suggestions {
+    position: absolute;
+    left: 1.5rem; right: 1.5rem;
+    top: calc(100% - 0.4rem);
+    margin-top: 0.6rem;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 10;
+    display: none;
+    padding: 0.4rem;
+  }
+  .suggestion {
+    padding: 0.7rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.92rem;
+    border-radius: 10px;
+    transition: background 0.15s;
+  }
+  .suggestion:hover { background: rgba(255,43,61,0.18); }
+  .suggestion .s-title { color: var(--text); }
+  .suggestion .s-author { color: var(--text-dim); font-size: 0.8rem; }
+
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 5rem;
+  }
+
+  #status {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    min-height: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--red-2);
+    margin-bottom: 1.3rem;
+    text-align: center;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .card {
+    padding: 1.2rem 1rem;
+    cursor: pointer;
+    transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-height: 150px;
+  }
+  .card:hover, .card.active {
+    transform: translateY(-6px);
+    background: rgba(255,43,61,0.12);
+    box-shadow: 0 12px 40px rgba(255,8,68,0.25);
+  }
+  .card .rank {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    color: var(--red-2);
+    letter-spacing: 0.05em;
+  }
+  .card .c-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+  .card .c-author {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: auto;
+  }
+
+  .detail {
+    max-width: 640px;
+    margin: 2.5rem auto 0;
+    display: none;
+    padding: 2rem;
+  }
+  .detail.show { display: block; }
+  .detail-title {
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin: 0 0 0.2rem;
+  }
+  .detail-author {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin: 0 0 1.1rem;
+  }
+  .detail-meta {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255,43,61,0.16);
+    border: 1px solid rgba(255,43,61,0.3);
+    color: var(--red-2);
+  }
+
+  .rec-label {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    padding: 2rem 0;
+  }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,43,61,0.4); border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Shelfmate</h1>
+  <p>Search a book you know — find what belongs beside it.</p>
+</header>
+
+<div class="search-wrap">
+  <div class="glass search-box">
+    <input id="query" type="text" placeholder="Search a title…" autocomplete="off">
+  </div>
+  <div id="suggestions" class="glass"></div>
+</div>
+
+<main>
+  <div id="status"></div>
+  <div id="results"></div>
+  <div class="detail glass" id="detail"></div>
+</main>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+
+const queryInput = document.getElementById('query');
+const suggestionsBox = document.getElementById('suggestions');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+const detailEl = document.getElementById('detail');
+
+let debounceTimer;
+queryInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  const q = queryInput.value.trim();
+  if (q.length < 2) { suggestionsBox.style.display = 'none'; return; }
+  debounceTimer = setTimeout(() => doSearch(q), 250);
+});
+
+document.addEventListener('click', (e) => {
+  if (!suggestionsBox.contains(e.target) && e.target !== queryInput) {
+    suggestionsBox.style.display = 'none';
+  }
+});
+
+async function doSearch(q) {
+  try {
+    const res = await fetch(`${API_BASE}/search?query=${encodeURIComponent(q)}`);
+    if (!res.ok) throw new Error('Search failed');
+    const data = await res.json();
+    renderSuggestions(data);
+  } catch (err) {
+    suggestionsBox.style.display = 'none';
+    statusEl.textContent = "Couldn't reach the library — is the API running?";
+  }
+}
+
+function renderSuggestions(items) {
+  if (!items.length) { suggestionsBox.style.display = 'none'; return; }
+  suggestionsBox.innerHTML = items.map(b => `
+    <div class="suggestion" data-title="${escapeAttr(b.title)}">
+      <div class="s-title">${escapeHtml(b.title)}</div>
+      <div class="s-author">${escapeHtml(b.authors || '')}</div>
+    </div>
+  `).join('');
+  suggestionsBox.style.display = 'block';
+  suggestionsBox.querySelectorAll('.suggestion').forEach(el => {
+    el.addEventListener('click', () => {
+      queryInput.value = el.dataset.title;
+      suggestionsBox.style.display = 'none';
+      fetchRecommendations(el.dataset.title);
+    });
+  });
+}
+
+async function fetchRecommendations(title) {
+  statusEl.textContent = "Scanning nearby shelves…";
+  resultsEl.innerHTML = '';
+  detailEl.classList.remove('show');
+  try {
+    const res = await fetch(`${API_BASE}/recommend?book_title=${encodeURIComponent(title)}&top_n=8`);
+    if (!res.ok) throw new Error('Not found');
+    const data = await res.json();
+    statusEl.textContent = '';
+    renderGrid(title, data);
+  } catch (err) {
+    statusEl.textContent = `Couldn't find "${title}" on the shelf.`;
+  }
+}
+
+function renderGrid(sourceTitle, items) {
+  if (!items.length) {
+    resultsEl.innerHTML = `<div class="empty">No neighbors found for this one yet.</div>`;
+    return;
+  }
+  resultsEl.innerHTML = `
+    <div class="eyebrow">Shelved near "${escapeHtml(sourceTitle)}"</div>
+    <div class="grid">
+      ${items.map((b, i) => `
+        <div class="card glass" data-idx="${i}">
+          <div class="rank">${String(i + 1).padStart(2, '0')}</div>
+          <div class="c-title">${escapeHtml(b.title)}</div>
+          <div class="c-author">${escapeHtml(b.authors || '')}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  resultsEl.querySelectorAll('.card').forEach((el, i) => {
+    el.addEventListener('click', () => {
+      resultsEl.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      showDetail(items[i]);
+    });
+  });
+}
+
+function showDetail(book) {
+  detailEl.innerHTML = `
+    <div class="rec-label">a good neighbor</div>
+    <div class="detail-title">${escapeHtml(book.title)}</div>
+    <div class="detail-author">${escapeHtml(book.authors || 'Unknown author')}</div>
+    <div class="detail-meta">
+      <span class="pill">★ ${book.average_rating ?? '—'}</span>
+      <span class="pill">match ${(book.similarity_score * 100).toFixed(1)}%</span>
+    </div>
+  `;
+  detailEl.classList.add('show');
+}
+
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
+</script>
+
+</body>
+</html>
